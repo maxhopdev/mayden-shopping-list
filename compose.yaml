@@ -1,0 +1,64 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    volumes:
+      - .:/var/www/html
+    environment:
+      # These override .env inside the container only; the host keeps its own .env values.
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-shopping_list}
+      DB_USERNAME: ${DB_USERNAME:-shopping_list}
+      DB_PASSWORD: ${DB_PASSWORD:-53N40Zx7VHjF}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  node:
+    image: node:22-alpine
+    working_dir: /var/www/html
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_HMR_HOST: localhost
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - .:/var/www/html
+      # Keep Linux-built node_modules separate from the host's macOS ones.
+      - node_modules:/var/www/html/node_modules
+
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-53N40Zx7VHjF}
+      MYSQL_DATABASE: ${DB_DATABASE:-shopping_list}
+      MYSQL_USER: ${DB_USERNAME:-shopping_list}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-53N40Zx7VHjF}
+    volumes:
+      - mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-53N40Zx7VHjF}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql:
+  node_modules:
