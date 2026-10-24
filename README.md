@@ -46,3 +46,11 @@ To receive emails, you need your own Mailtrap login:
    ```bash
    docker compose restart app
    ```
+
+## To do
+
+Write unit tests
+Separate out logic from `app/Http/Controllers/ShoppingListController.php` and move into services
+Improve item ordering - draggable for better UX, up down can be clunky for long lists
+Change up design - just using Laravel Jetstream template right now
+Improve accessibility by labeling icons and improves, add more alert on actions and improve colour contrasts
